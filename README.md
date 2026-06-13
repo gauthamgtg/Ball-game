@@ -25,15 +25,33 @@ and try to go the distance as the speed keeps climbing.
 - **Escalating speed** — the ball speeds up the further you go (like Temple
   Run), capping out around 2 km in.
 - **Orbs** — collect glowing orbs for bonus score.
-- **Full menu system** — main menu, settings, leaderboard, in-game pause.
+- **Continue after death** — once per run you can **watch an ad**, and once per
+  run you can **spend coins** to revive. Reviving drops you on safe ground,
+  clears nearby lasers, and grants brief invulnerability; your distance carries
+  over.
+- **Coins & shop** — orbs collected during a run are banked into coins; spend
+  them in the **shop** to buy and equip **ball skins** (including a hue-cycling
+  "Plasma" skin).
+- **Full menu system** — main menu, shop, settings, leaderboard, in-game pause.
 - **Settings** (saved locally): Sound FX on/off, Music on/off, graphics quality
   (Low / Medium / High), and player name.
 - **Leaderboard** — a local high-score table plus a global tab (see
   [Global leaderboard](#global-leaderboard) to connect a backend).
 - **Audio** — synthesized sound effects and a procedural looping music track
   (no audio asset files).
-- **Quality settings & proper rendering** — filmic tone mapping, correct colour
-  management, soft shadows, and adjustable resolution / fog / effects.
+- **High-end rendering** — Unreal-style **bloom**, filmic (ACES) tone mapping,
+  correct colour management, soft shadows, a comet **trail**, particle bursts,
+  speed-based FOV, and a death camera shake. Quality settings scale these for
+  low-end devices.
+
+### Losing conditions (there is no "win" — it's endless)
+
+The run ends when the ball **falls off the side** of the track, **falls into a
+gap**, or **hits a laser**. Speed only ever increases, so the goal is maximum
+distance. Every ball state — grounded on flats/curves/hills/ramps, airborne
+from jumps and ramp launches, landing, and reviving — is covered by the
+headless audit in `test/sim.test.mjs` (`npm test`), which checks fairness and
+physics invariants (no NaN, monotonic distance, ground-tracking) across runs.
 
 ## Controls
 
@@ -100,6 +118,25 @@ After changing any web/game code, re-sync with:
 npm run cap:sync
 ```
 
+## Ads & in-app purchases
+
+The continue flow is fully playable in the browser using a **mock rewarded ad**
+and an in-game coin revive, so nothing is stubbed out for the player. To ship
+real monetization, set providers on the abstractions in `src/monetization.js`
+(the calls are already shaped for native plugins):
+
+- **Rewarded ads** → wire `Ads.setProvider({ showRewarded })` to
+  [`@capacitor-community/admob`](https://github.com/capacitor-community/admob)
+  (or your ad SDK). `showRewarded()` must resolve `true` once the reward is
+  earned.
+- **Coin packs (real money)** → wire `Purchases.setProvider({ buy })` to an IAP
+  plugin (e.g. `@capacitor-community/in-app-purchases` or RevenueCat) if you
+  want to sell coins. The coin **revive** itself only spends in-game coins, so
+  IAP is optional.
+
+The revive cost (coins) lives in `LIFE_COST` in `src/main.js`. Skins and prices
+live in `src/skins.js`.
+
 ## Global leaderboard
 
 Local scores work offline out of the box. The **Global** tab needs a backend.
@@ -128,14 +165,17 @@ index.html              # app shell: canvas, HUD, start & game-over screens
 capacitor.config.json   # native app id / name / web dir
 vite.config.js          # bundler config (outputs to dist/)
 src/
-  main.js               # bootstrap: screens, menus, and UI wiring
-  game.js               # Three.js scene, rendering, ball physics, collisions
+  main.js               # bootstrap: screens, menus, shop, continue flow
+  game.js               # Three.js scene, rendering (bloom/FX), physics, skins
   track.js              # procedural track: curves, ramps, gaps, lasers, orbs
   input.js              # touch (drag/swipe/tap) + keyboard controls
   audio.js              # WebAudio sound effects (no asset files needed)
   music.js              # procedural looping background music
   settings.js           # persisted settings (sfx/music/quality/name)
   leaderboard.js        # local + pluggable global leaderboard
+  economy.js            # persistent coins (banked from orbs)
+  skins.js              # ball skins + ownership / equip persistence
+  monetization.js       # ads + IAP abstraction (provider hooks)
   styles.css            # UI / HUD / menu styling
 test/
   sim.test.mjs          # headless run that verifies the track stays fair
