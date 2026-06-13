@@ -40,10 +40,14 @@
         <p class="tagline">Roll forever. Dodge the lasers. Don't fall.</p>
         <div class="menu-btns">
           <button id="play-btn" class="btn">PLAY</button>
+          <button id="shop-btn" class="btn btn-ghost">SHOP</button>
           <button id="leaderboard-btn" class="btn btn-ghost">LEADERBOARD</button>
           <button id="settings-btn" class="btn btn-ghost">SETTINGS</button>
         </div>
-        <p class="best">Best: <span id="best-menu">0</span> m</p>
+        <div class="menu-foot">
+          <span class="best">Best: <span id="best-menu">0</span> m</span>
+          <span class="coin-pill">♦ <span id="coins-menu">0</span></span>
+        </div>
       </div>
     </div>
 
@@ -104,12 +108,44 @@
       </div>
     </div>
 
+    <!-- Shop -->
+    <div id="shop-screen" class="overlay hidden">
+      <div class="panel panel-wide">
+        <h2 class="sub-title">BALL SHOP</h2>
+        <p class="shop-balance">Balance: <span class="coin-pill">♦ <span id="coins-shop">0</span></span></p>
+        <div id="shop-grid" class="shop-grid"></div>
+        <button class="btn back-btn" data-back>BACK</button>
+      </div>
+    </div>
+
+    <!-- Mock advertisement (replaced by a real rewarded ad in production) -->
+    <div id="ad-screen" class="overlay hidden">
+      <div class="ad-card">
+        <span class="ad-tag">AD</span>
+        <div class="ad-spinner"></div>
+        <p class="ad-text">Your reward is on the way…</p>
+        <p class="ad-count">Continue in <span id="ad-count">5</span>s</p>
+      </div>
+    </div>
+
     <!-- Game over -->
     <div id="gameover-screen" class="overlay hidden">
       <div class="panel">
         <h2 class="go-title">GAME OVER</h2>
         <p id="death-reason" class="death-reason"></p>
         <p id="rank-note" class="rank-note hidden"></p>
+
+        <div id="continue-box" class="continue-box hidden">
+          <p class="continue-title">CONTINUE YOUR RUN?</p>
+          <div class="continue-btns">
+            <button id="continue-ad" class="btn btn-ad">▶ WATCH AD</button>
+            <button id="continue-pay" class="btn btn-pay">
+              ♦ <span id="pay-cost">75</span> &nbsp;CONTINUE
+            </button>
+          </div>
+          <p class="continue-hint">One ad and one coin revive per run.</p>
+        </div>
+
         <div class="score-grid">
           <div>
             <span class="score-label">DISTANCE</span>
@@ -124,6 +160,7 @@
             <span id="final-best" class="score-value">0</span><span class="hud-unit">m</span>
           </div>
         </div>
+        <p class="shop-balance">Coins: <span class="coin-pill">♦ <span id="coins-go">0</span></span></p>
         <div class="menu-btns">
           <button id="retry-btn" class="btn">PLAY AGAIN</button>
           <button id="go-menu-btn" class="btn btn-ghost">MAIN MENU</button>

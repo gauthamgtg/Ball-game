@@ -2,17 +2,31 @@ import './styles.css';
 import { Game } from './game.js';
 import { Settings } from './settings.js';
 import { Leaderboard } from './leaderboard.js';
+import { Economy } from './economy.js';
+import { SkinStore, SKINS } from './skins.js';
+import { Ads } from './monetization.js';
 
 const $ = (id) => document.getElementById(id);
 const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+const hexCss = (n) => '#' + n.toString(16).padStart(6, '0');
+
+const LIFE_COST = 75;
 
 const settings = new Settings();
 const leaderboard = new Leaderboard();
+const economy = new Economy();
+const skins = new SkinStore();
+const ads = new Ads();
+ads.setProvider({ showRewarded: playMockAd });
+
+// Per-run continue bookkeeping: one ad revive and one coin revive each.
+let run = { adUsed: false, payUsed: false, banked: 0 };
 
 const overlays = {
   menu: $('menu-screen'),
   settings: $('settings-screen'),
   leaderboard: $('leaderboard-screen'),
+  shop: $('shop-screen'),
   pause: $('pause-screen'),
   gameover: $('gameover-screen'),
 };
@@ -34,6 +48,14 @@ function refreshBest() {
   $('best-menu').textContent = getBest();
 }
 
+function refreshCoins() {
+  const b = economy.balance;
+  ['coins-menu', 'coins-shop', 'coins-go'].forEach((id) => {
+    const el = $(id);
+    if (el) el.textContent = b;
+  });
+}
+
 // ---------------------------------------------------------------------------
 const game = new Game($('game'), settings, {
   onUpdate(dist, orbs, speedFrac) {
@@ -42,6 +64,12 @@ const game = new Game($('game'), settings, {
     $('speed-bar').style.width = `${Math.round(Math.max(0, Math.min(1, speedFrac)) * 100)}%`;
   },
   onGameOver(reason, dist, orbs) {
+    // Bank any newly collected orbs into coins (delta, so continues don't
+    // double-count).
+    economy.add(orbs - run.banked);
+    run.banked = orbs;
+    refreshCoins();
+
     const name = settings.get('name') || 'Player';
     const { top, rank } = leaderboard.addLocal({ name, distance: dist, orbs });
     leaderboard.submitGlobal({ name, distance: dist, orbs }); // fire and forget
@@ -61,13 +89,15 @@ const game = new Game($('game'), settings, {
     } else {
       note.classList.add('hidden');
     }
-    refreshBest();
+
+    setupContinue();
     showScreen('gameover');
   },
 });
+game.setSkin(skins.equippedSkin);
 
 // ---------------------------------------------------------------------------
-// Audio must unlock on a user gesture; the first interaction also starts music.
+// Audio unlocks on the first user gesture, which also starts the music.
 let audioReady = false;
 function unlockAudio() {
   if (audioReady) return;
@@ -78,6 +108,7 @@ window.addEventListener('pointerdown', unlockAudio, { once: true });
 
 // ---------------------------------------------------------------------------
 function startGame() {
+  run = { adUsed: false, payUsed: false, banked: 0 };
   showScreen(null);
   game.start();
 }
@@ -85,6 +116,7 @@ function startGame() {
 function toMenu() {
   game.toMenu();
   refreshBest();
+  refreshCoins();
   showScreen('menu');
 }
 
@@ -101,6 +133,10 @@ $('leaderboard-btn').addEventListener('click', () => {
   selectTab('local');
   showScreen('leaderboard');
 });
+$('shop-btn').addEventListener('click', () => {
+  renderShop();
+  showScreen('shop');
+});
 
 $('pause-btn').addEventListener('click', () => {
   game.pause();
@@ -112,6 +148,118 @@ $('resume-btn').addEventListener('click', () => {
 });
 
 qsa('[data-back]').forEach((b) => b.addEventListener('click', () => showScreen('menu')));
+
+// ---------------------------------------------------------------------------
+// Continue flow (watch ad OR spend coins — each usable once per run).
+function setupContinue() {
+  const box = $('continue-box');
+  const adBtn = $('continue-ad');
+  const payBtn = $('continue-pay');
+  $('pay-cost').textContent = LIFE_COST;
+
+  adBtn.classList.toggle('hidden', run.adUsed);
+  payBtn.classList.toggle('hidden', run.payUsed);
+  payBtn.classList.toggle('disabled', !economy.canAfford(LIFE_COST));
+
+  const anything = !run.adUsed || !run.payUsed;
+  box.classList.toggle('hidden', !anything);
+}
+
+$('continue-ad').addEventListener('click', async () => {
+  if (run.adUsed) return;
+  const ok = await ads.showRewarded();
+  if (ok) {
+    run.adUsed = true;
+    showScreen(null);
+    game.continueRun();
+  }
+});
+
+$('continue-pay').addEventListener('click', () => {
+  if (run.payUsed || !economy.canAfford(LIFE_COST)) return;
+  if (economy.spend(LIFE_COST)) {
+    run.payUsed = true;
+    refreshCoins();
+    showScreen(null);
+    game.continueRun();
+  }
+});
+
+// A placeholder rewarded ad so the flow works in the browser. Swap for a real
+// rewarded ad via the Ads provider (see monetization.js).
+function playMockAd() {
+  return new Promise((resolve) => {
+    const screen = $('ad-screen');
+    const cnt = $('ad-count');
+    let t = 5;
+    cnt.textContent = t;
+    screen.classList.remove('hidden');
+    const iv = setInterval(() => {
+      t -= 1;
+      cnt.textContent = Math.max(0, t);
+      if (t <= 0) {
+        clearInterval(iv);
+        screen.classList.add('hidden');
+        resolve(true);
+      }
+    }, 1000);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Shop
+function renderShop() {
+  $('coins-shop').textContent = economy.balance;
+  const grid = $('shop-grid');
+  grid.innerHTML = '';
+  for (const s of SKINS) {
+    const card = document.createElement('div');
+    card.className = 'skin-card';
+    const owned = skins.isOwned(s.id);
+    const equipped = skins.equipped === s.id;
+    if (equipped) card.classList.add('equipped');
+
+    const sw = document.createElement('div');
+    sw.className = 'skin-swatch';
+    sw.style.background = `radial-gradient(circle at 35% 30%, ${hexCss(s.emissive)}, ${hexCss(s.color)})`;
+    sw.style.color = hexCss(s.emissive);
+
+    const nm = document.createElement('div');
+    nm.className = 'skin-name';
+    nm.textContent = s.name;
+
+    const btn = document.createElement('button');
+    btn.className = 'skin-action';
+    if (equipped) {
+      btn.textContent = 'EQUIPPED';
+      btn.classList.add('equipped-tag');
+    } else if (owned) {
+      btn.textContent = 'EQUIP';
+      btn.classList.add('owned');
+      btn.addEventListener('click', () => {
+        skins.equip(s.id);
+        game.setSkin(s);
+        renderShop();
+      });
+    } else {
+      btn.textContent = `♦ ${s.price}`;
+      btn.classList.add('locked');
+      if (!economy.canAfford(s.price)) btn.classList.add('cant');
+      btn.addEventListener('click', () => {
+        if (economy.spend(s.price)) {
+          skins.unlock(s.id);
+          skins.equip(s.id);
+          game.setSkin(s);
+          refreshCoins();
+          renderShop();
+        }
+      });
+    }
+
+    card.append(sw, nm, btn);
+    grid.appendChild(card);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Settings UI
@@ -152,20 +300,19 @@ $('name-input').addEventListener('input', (e) => {
 
 // ---------------------------------------------------------------------------
 // Leaderboard UI
-function entryRow(rank, e, isMe) {
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function entryRow(rank, e) {
   const li = document.createElement('li');
-  if (isMe) li.classList.add('me');
   li.innerHTML = `
     <span class="rank">${rank}</span>
     <span class="name">${escapeHtml(e.name || 'Player')}</span>
     <span class="dist">${e.distance} m</span>`;
   return li;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
 }
 
 function renderList(entries, emptyMsg) {
@@ -175,7 +322,7 @@ function renderList(entries, emptyMsg) {
     $('lb-note').textContent = emptyMsg;
     return;
   }
-  entries.slice(0, 25).forEach((e, i) => list.appendChild(entryRow(i + 1, e, false)));
+  entries.slice(0, 25).forEach((e, i) => list.appendChild(entryRow(i + 1, e)));
 }
 
 async function selectTab(tab) {
@@ -185,7 +332,6 @@ async function selectTab(tab) {
     renderList(leaderboard.getLocal(), 'No scores yet — take a roll!');
     return;
   }
-  // global
   $('lb-list').innerHTML = '';
   if (!leaderboard.isGlobalConfigured()) {
     $('lb-note').textContent =
@@ -197,7 +343,7 @@ async function selectTab(tab) {
     const data = await leaderboard.getGlobal();
     renderList(data, 'No global scores yet.');
   } catch {
-    $('lb-note').textContent = 'Could not reach the global leaderboard. Showing nothing.';
+    $('lb-note').textContent = 'Could not reach the global leaderboard.';
   }
 }
 
@@ -205,4 +351,5 @@ qsa('.tab').forEach((t) => t.addEventListener('click', () => selectTab(t.dataset
 
 // ---------------------------------------------------------------------------
 refreshBest();
+refreshCoins();
 showScreen('menu');
