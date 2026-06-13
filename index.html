@@ -22,6 +22,7 @@
           <span class="hud-label">DISTANCE</span>
           <span id="distance">0</span><span class="hud-unit">m</span>
         </div>
+        <button id="pause-btn" class="icon-btn" aria-label="Pause">❚❚</button>
         <div class="hud-stat hud-right">
           <span class="hud-label">ORBS</span>
           <span id="orbs">0</span>
@@ -32,25 +33,83 @@
       </div>
     </div>
 
-    <!-- Start menu -->
-    <div id="start-screen" class="overlay">
+    <!-- Main menu -->
+    <div id="menu-screen" class="overlay">
       <div class="panel">
         <h1 class="title">INFINITE<br /><span>BALL ROLL</span></h1>
         <p class="tagline">Roll forever. Dodge the lasers. Don't fall.</p>
-        <button id="play-btn" class="btn">TAP TO PLAY</button>
-        <div class="how-to">
-          <div><b>Steer</b> — drag left / right · arrow keys</div>
-          <div><b>Jump</b> — swipe up / tap · space</div>
+        <div class="menu-btns">
+          <button id="play-btn" class="btn">PLAY</button>
+          <button id="leaderboard-btn" class="btn btn-ghost">LEADERBOARD</button>
+          <button id="settings-btn" class="btn btn-ghost">SETTINGS</button>
         </div>
-        <p class="best">Best: <span id="best-start">0</span> m</p>
+        <p class="best">Best: <span id="best-menu">0</span> m</p>
       </div>
     </div>
 
-    <!-- Game over screen -->
+    <!-- Settings -->
+    <div id="settings-screen" class="overlay hidden">
+      <div class="panel panel-wide">
+        <h2 class="sub-title">SETTINGS</h2>
+
+        <div class="setting-row">
+          <span class="setting-label">Sound FX</span>
+          <button class="toggle" data-toggle="sfxOn"><span class="knob"></span></button>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Music</span>
+          <button class="toggle" data-toggle="musicOn"><span class="knob"></span></button>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">Graphics</span>
+          <div class="segment" id="quality-seg">
+            <button data-quality="low">Low</button>
+            <button data-quality="medium">Medium</button>
+            <button data-quality="high">High</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">Player name</span>
+          <input id="name-input" class="name-input" maxlength="14" placeholder="Player" />
+        </div>
+
+        <button class="btn back-btn" data-back>BACK</button>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="leaderboard-screen" class="overlay hidden">
+      <div class="panel panel-wide">
+        <h2 class="sub-title">LEADERBOARD</h2>
+        <div class="tabs">
+          <button class="tab active" data-tab="local">Local</button>
+          <button class="tab" data-tab="global">Global</button>
+        </div>
+        <ol id="lb-list" class="lb-list"></ol>
+        <p id="lb-note" class="lb-note"></p>
+        <button class="btn back-btn" data-back>BACK</button>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pause-screen" class="overlay hidden">
+      <div class="panel">
+        <h2 class="sub-title">PAUSED</h2>
+        <div class="menu-btns">
+          <button id="resume-btn" class="btn">RESUME</button>
+          <button id="pause-menu-btn" class="btn btn-ghost">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game over -->
     <div id="gameover-screen" class="overlay hidden">
       <div class="panel">
         <h2 class="go-title">GAME OVER</h2>
         <p id="death-reason" class="death-reason"></p>
+        <p id="rank-note" class="rank-note hidden"></p>
         <div class="score-grid">
           <div>
             <span class="score-label">DISTANCE</span>
@@ -65,7 +124,10 @@
             <span id="final-best" class="score-value">0</span><span class="hud-unit">m</span>
           </div>
         </div>
-        <button id="retry-btn" class="btn">PLAY AGAIN</button>
+        <div class="menu-btns">
+          <button id="retry-btn" class="btn">PLAY AGAIN</button>
+          <button id="go-menu-btn" class="btn btn-ghost">MAIN MENU</button>
+        </div>
       </div>
     </div>
 
