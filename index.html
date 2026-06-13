@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#0b1026" />
+    <title>Infinite Ball Roll</title>
+  </head>
+  <body>
+    <!-- 3D game renders into this canvas -->
+    <canvas id="game"></canvas>
+
+    <!-- Heads-up display shown while playing -->
+    <div id="hud" class="hidden">
+      <div class="hud-row">
+        <div class="hud-stat">
+          <span class="hud-label">DISTANCE</span>
+          <span id="distance">0</span><span class="hud-unit">m</span>
+        </div>
+        <div class="hud-stat hud-right">
+          <span class="hud-label">ORBS</span>
+          <span id="orbs">0</span>
+        </div>
+      </div>
+      <div id="speed-wrap">
+        <div id="speed-bar"></div>
+      </div>
+    </div>
+
+    <!-- Start menu -->
+    <div id="start-screen" class="overlay">
+      <div class="panel">
+        <h1 class="title">INFINITE<br /><span>BALL ROLL</span></h1>
+        <p class="tagline">Roll forever. Dodge the lasers. Don't fall.</p>
+        <button id="play-btn" class="btn">TAP TO PLAY</button>
+        <div class="how-to">
+          <div><b>Steer</b> — drag left / right · arrow keys</div>
+          <div><b>Jump</b> — swipe up / tap · space</div>
+        </div>
+        <p class="best">Best: <span id="best-start">0</span> m</p>
+      </div>
+    </div>
+
+    <!-- Game over screen -->
+    <div id="gameover-screen" class="overlay hidden">
+      <div class="panel">
+        <h2 class="go-title">GAME OVER</h2>
+        <p id="death-reason" class="death-reason"></p>
+        <div class="score-grid">
+          <div>
+            <span class="score-label">DISTANCE</span>
+            <span id="final-distance" class="score-value">0</span><span class="hud-unit">m</span>
+          </div>
+          <div>
+            <span class="score-label">ORBS</span>
+            <span id="final-orbs" class="score-value">0</span>
+          </div>
+          <div>
+            <span class="score-label">BEST</span>
+            <span id="final-best" class="score-value">0</span><span class="hud-unit">m</span>
+          </div>
+        </div>
+        <button id="retry-btn" class="btn">PLAY AGAIN</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "appId": "com.bizeract.infiniteballroll",
+  "appName": "Infinite Ball Roll",
+  "webDir": "dist",
+  "backgroundColor": "#0b1026",
+  "android": {
+    "backgroundColor": "#0b1026"
+  },
+  "ios": {
+    "backgroundColor": "#0b1026",
+    "contentInset": "always"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
