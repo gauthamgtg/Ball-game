@@ -227,3 +227,243 @@ body {
   font-size: 32px;
   font-weight: 900;
 }
+
+/* ---------- shared menu pieces ---------- */
+.sub-title {
+  font-size: clamp(26px, 8vw, 40px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin-bottom: 22px;
+  color: var(--accent);
+  text-shadow: 0 4px 24px rgba(54, 224, 255, 0.45);
+}
+
+.panel-wide {
+  max-width: 460px;
+}
+
+.menu-btns {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.menu-btns .btn {
+  width: min(280px, 80%);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid rgba(54, 224, 255, 0.55);
+  box-shadow: none;
+}
+
+.btn-ghost:active {
+  background: rgba(54, 224, 255, 0.12);
+}
+
+.back-btn {
+  margin-top: 26px;
+}
+
+.icon-btn {
+  pointer-events: auto;
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* ---------- settings ---------- */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.setting-label {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.toggle {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  width: 58px;
+  height: 32px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.18);
+  position: relative;
+  transition: background 0.18s ease;
+}
+
+.toggle .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s ease;
+}
+
+.toggle.on {
+  background: linear-gradient(90deg, var(--accent), #7af9ff);
+}
+
+.toggle.on .knob {
+  transform: translateX(26px);
+}
+
+.segment {
+  display: flex;
+  border: 1px solid rgba(54, 224, 255, 0.4);
+  border-radius: 30px;
+  overflow: hidden;
+}
+
+.segment button {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  padding: 9px 14px;
+}
+
+.segment button.active {
+  background: linear-gradient(90deg, var(--accent), #7af9ff);
+  color: #04121a;
+}
+
+.name-input {
+  appearance: none;
+  border: 1px solid rgba(54, 224, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 9px 12px;
+  border-radius: 10px;
+  width: 150px;
+  text-align: right;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---------- leaderboard ---------- */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-size: 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 9px 22px;
+  border-radius: 30px;
+}
+
+.tab.active {
+  background: linear-gradient(90deg, var(--accent), #7af9ff);
+  color: #04121a;
+}
+
+.lb-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  max-height: 46vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.lb-list li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 10px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.lb-list li:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lb-list .rank {
+  font-weight: 900;
+  color: var(--accent);
+  text-align: center;
+}
+
+.lb-list .name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-list .dist {
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.lb-list li.me {
+  outline: 1px solid var(--accent2);
+}
+
+.lb-note {
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
+.rank-note {
+  margin: 2px 0 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--accent);
+}

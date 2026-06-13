@@ -25,7 +25,15 @@ and try to go the distance as the speed keeps climbing.
 - **Escalating speed** — the ball speeds up the further you go (like Temple
   Run), capping out around 2 km in.
 - **Orbs** — collect glowing orbs for bonus score.
-- **Best distance** is saved locally between runs.
+- **Full menu system** — main menu, settings, leaderboard, in-game pause.
+- **Settings** (saved locally): Sound FX on/off, Music on/off, graphics quality
+  (Low / Medium / High), and player name.
+- **Leaderboard** — a local high-score table plus a global tab (see
+  [Global leaderboard](#global-leaderboard) to connect a backend).
+- **Audio** — synthesized sound effects and a procedural looping music track
+  (no audio asset files).
+- **Quality settings & proper rendering** — filmic tone mapping, correct colour
+  management, soft shadows, and adjustable resolution / fog / effects.
 
 ## Controls
 
@@ -92,6 +100,27 @@ After changing any web/game code, re-sync with:
 npm run cap:sync
 ```
 
+## Global leaderboard
+
+Local scores work offline out of the box. The **Global** tab needs a backend.
+Point the game at one by either:
+
+- editing `LEADERBOARD_ENDPOINT` in `src/leaderboard.js`, or
+- setting `window.IBR_LEADERBOARD_ENDPOINT = 'https://your-api.example'` at
+  runtime (e.g. in `index.html`).
+
+The endpoint must expose:
+
+```
+GET  {endpoint}/scores   ->  [{ "name": "Ada", "distance": 1234, "orbs": 12 }, ...]
+POST {endpoint}/scores   <-  { "name": "Ada", "distance": 1234, "orbs": 12 }
+```
+
+`GET` should return the top scores (highest distance first); `POST` records a
+new score. Until an endpoint is configured the Global tab simply says it isn't
+connected — no scores are faked. Any small service (Firebase, Supabase, a Cloud
+Function, a tiny Express app, etc.) that implements those two routes will work.
+
 ## Project layout
 
 ```
@@ -99,12 +128,15 @@ index.html              # app shell: canvas, HUD, start & game-over screens
 capacitor.config.json   # native app id / name / web dir
 vite.config.js          # bundler config (outputs to dist/)
 src/
-  main.js               # bootstrap: wires the DOM UI to the game
-  game.js               # Three.js scene, ball physics, camera, collisions
+  main.js               # bootstrap: screens, menus, and UI wiring
+  game.js               # Three.js scene, rendering, ball physics, collisions
   track.js              # procedural track: curves, ramps, gaps, lasers, orbs
   input.js              # touch (drag/swipe/tap) + keyboard controls
   audio.js              # WebAudio sound effects (no asset files needed)
-  styles.css            # UI / HUD styling
+  music.js              # procedural looping background music
+  settings.js           # persisted settings (sfx/music/quality/name)
+  leaderboard.js        # local + pluggable global leaderboard
+  styles.css            # UI / HUD / menu styling
 test/
   sim.test.mjs          # headless run that verifies the track stays fair
 ```

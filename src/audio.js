@@ -2,7 +2,8 @@
 export class Sfx {
   constructor() {
     this.ctx = null;
-    this.enabled = true;
+    this.enabled = true; // master kill switch
+    this.sfxOn = true; // user setting
   }
 
   // Must be called from a user gesture (tap/click) to unlock audio on iOS.
@@ -19,7 +20,7 @@ export class Sfx {
   }
 
   _tone(freq, dur, type = 'sine', gain = 0.2, slideTo = null) {
-    if (!this.enabled || !this.ctx) return;
+    if (!this.enabled || !this.sfxOn || !this.ctx) return;
     const t0 = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const g = this.ctx.createGain();

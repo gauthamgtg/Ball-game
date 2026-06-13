@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TrackManager, ROAD_HALF, BALL_R } from './track.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
+import { Music } from './music.js';
 
 // ---- tuning ---------------------------------------------------------------
 const BASE_SPEED = 13;
@@ -15,18 +16,24 @@ const CAM_HEIGHT = 4.4;
 const LOOK_AHEAD = 16;
 
 export class Game {
-  constructor(canvas, callbacks = {}) {
+  constructor(canvas, settings, callbacks = {}) {
     this.canvas = canvas;
+    this.settings = settings;
     this.cb = callbacks;
     this.sfx = new Sfx();
+    this.music = new Music();
     this.input = new Input(12);
     this.state = 'ready';
+    this.quality = settings.get('quality');
 
     this._initRenderer();
     this._initScene();
     this._initBall();
 
     this.track = new TrackManager(this.scene, this._roadTexture);
+
+    this.setQuality(this.quality);
+    this.sfx.sfxOn = settings.get('sfxOn');
 
     this._clock = new THREE.Clock();
     window.addEventListener('resize', () => this._onResize());
@@ -36,13 +43,20 @@ export class Game {
 
   // -------------------------------------------------------------------------
   _initRenderer() {
+    // Antialiasing can only be chosen at context creation, so derive it from
+    // the saved quality up front. Everything else is adjusted live.
+    const aa = this.quality !== 'low';
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
-      antialias: true,
+      antialias: aa,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    // Proper colour management + filmic tone mapping for richer neon.
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   }
 
   _initScene() {
@@ -55,9 +69,21 @@ export class Game {
 
     const hemi = new THREE.HemisphereLight(0xbfe6ff, 0x202a55, 0.9);
     this.scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff, 1.1);
-    dir.position.set(-8, 20, 10);
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(-8, 22, 10);
+    dir.castShadow = true;
+    dir.shadow.mapSize.set(1024, 1024);
+    const cam = dir.shadow.camera;
+    cam.near = 1;
+    cam.far = 80;
+    cam.left = -20;
+    cam.right = 20;
+    cam.top = 20;
+    cam.bottom = -20;
+    dir.shadow.bias = -0.0008;
     this.scene.add(dir);
+    this.scene.add(dir.target);
+    this.dirLight = dir;
 
     // Light that travels with the ball for a glowing-orb feel.
     this.ballLight = new THREE.PointLight(0x6fdcff, 1.4, 30, 2);
@@ -100,6 +126,7 @@ export class Game {
       emissiveIntensity: 0.35,
     });
     this.ballMesh = new THREE.Mesh(geo, mat);
+    this.ballMesh.castShadow = true;
     this.scene.add(this.ballMesh);
 
     // A subtle equator stripe so rotation reads clearly.
@@ -112,9 +139,48 @@ export class Game {
     this.ball = { dist: 0, x: 0, y: BALL_R, vy: 0, grounded: true };
   }
 
+  // -- audio / settings -----------------------------------------------------
+  // Called on the first user gesture to unlock audio and start music.
+  ensureAudio() {
+    this.sfx.resume();
+    if (this.sfx.ctx) this.music.init(this.sfx.ctx);
+    this.applyAudioSettings();
+  }
+
+  applyAudioSettings() {
+    this.sfx.sfxOn = this.settings.get('sfxOn');
+    if (this.settings.get('musicOn')) this.music.start();
+    else this.music.stop();
+  }
+
+  setQuality(q) {
+    this.quality = q;
+    const dpr = window.devicePixelRatio || 1;
+    if (q === 'low') {
+      this.renderer.setPixelRatio(1);
+      this.renderer.shadowMap.enabled = false;
+      this.scene.fog.near = 40;
+      this.scene.fog.far = 140;
+      if (this.stars) this.stars.visible = false;
+    } else if (q === 'medium') {
+      this.renderer.setPixelRatio(Math.min(dpr, 1.5));
+      this.renderer.shadowMap.enabled = true;
+      this.scene.fog.near = 55;
+      this.scene.fog.far = 180;
+      if (this.stars) this.stars.visible = true;
+    } else {
+      this.renderer.setPixelRatio(Math.min(dpr, 2));
+      this.renderer.shadowMap.enabled = true;
+      this.scene.fog.near = 60;
+      this.scene.fog.far = 210;
+      if (this.stars) this.stars.visible = true;
+    }
+    if (this.dirLight) this.dirLight.castShadow = this.renderer.shadowMap.enabled;
+  }
+
   // -------------------------------------------------------------------------
   start() {
-    this.sfx.resume();
+    this.ensureAudio();
     this.track.reset();
     this.input.reset();
     this.ball = { dist: 0, x: 0, y: BALL_R, vy: 0, grounded: true };
@@ -122,6 +188,19 @@ export class Game {
     this.prevDist = 0;
     this.ballMesh.rotation.set(0, 0, 0);
     this.state = 'playing';
+  }
+
+  pause() {
+    if (this.state === 'playing') this.state = 'paused';
+  }
+
+  resume() {
+    if (this.state === 'paused') this.state = 'playing';
+  }
+
+  // Stop play and return to a non-playing state (used by the menu button).
+  toMenu() {
+    this.state = 'ready';
   }
 
   _die(reason) {
@@ -254,6 +333,13 @@ export class Game {
     this.camera.position.z = -ball.dist + CAM_BACK;
     this._lookX = (this._lookX ?? 0) + (ball.x * 0.4 - (this._lookX ?? 0)) * k;
     this.camera.lookAt(this._lookX, ball.y + 0.5, -ball.dist - LOOK_AHEAD);
+
+    // Keep the shadow-casting light (and its frustum) centred on the ball.
+    if (this.dirLight && this.renderer.shadowMap.enabled) {
+      this.dirLight.position.set(ball.x - 8, ball.y + 22, -ball.dist + 10);
+      this.dirLight.target.position.set(ball.x, ball.y, -ball.dist - 6);
+      this.dirLight.target.updateMatrixWorld();
+    }
   }
 
   _animateDecor(dt) {
@@ -293,6 +379,7 @@ function makeRoadTexture() {
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.anisotropy = 4;
+  tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
