@@ -31,7 +31,11 @@
       <div id="speed-wrap">
         <div id="speed-bar"></div>
       </div>
+      <div id="power-hud"></div>
     </div>
+
+    <!-- Milestone / toast banner -->
+    <div id="banner" class="banner hidden"></div>
 
     <!-- Main menu -->
     <div id="menu-screen" class="overlay">
@@ -118,6 +122,17 @@
         </p>
         <div id="shop-grid" class="shop-grid"></div>
         <button class="btn back-btn" data-back>BACK</button>
+      </div>
+    </div>
+
+    <!-- Daily reward -->
+    <div id="daily-screen" class="overlay hidden">
+      <div class="panel">
+        <h2 class="sub-title">DAILY REWARD</h2>
+        <div class="daily-coin">♦</div>
+        <p class="daily-amount">+<span id="daily-reward">25</span> coins</p>
+        <p class="daily-streak">Day <span id="daily-streak">1</span> streak</p>
+        <button id="daily-claim" class="btn">CLAIM</button>
       </div>
     </div>
 

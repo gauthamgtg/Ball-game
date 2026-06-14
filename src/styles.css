@@ -103,6 +103,99 @@ body {
   transition: width 0.2s linear;
 }
 
+/* active power-ups */
+#power-hud {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.power-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 5px 11px;
+  border-radius: 30px;
+  color: #04121a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.power-chip .ico {
+  font-size: 14px;
+}
+
+.power-chip.shield {
+  background: linear-gradient(90deg, #49d6ff, #a7ecff);
+}
+.power-chip.magnet {
+  background: linear-gradient(90deg, #ff4d6d, #ff9bad);
+}
+.power-chip.double {
+  background: linear-gradient(90deg, #ffd54a, #ffe9a0);
+}
+
+/* milestone / toast banner */
+.banner {
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-size: clamp(22px, 7vw, 34px);
+  color: var(--text);
+  text-shadow: 0 0 24px var(--accent);
+  white-space: nowrap;
+}
+
+.banner.show {
+  animation: banner 1.8s ease forwards;
+}
+
+@keyframes banner {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.05);
+  }
+}
+
+/* daily reward */
+.daily-coin {
+  font-size: 64px;
+  color: #ffd54a;
+  text-shadow: 0 0 30px rgba(255, 213, 74, 0.6);
+  margin-bottom: 6px;
+}
+
+.daily-amount {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffd54a;
+}
+
+.daily-streak {
+  margin: 8px 0 24px;
+  opacity: 0.75;
+  letter-spacing: 1px;
+}
+
 /* ---------- Overlays ---------- */
 .overlay {
   position: fixed;

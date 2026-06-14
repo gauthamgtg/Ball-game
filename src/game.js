@@ -32,6 +32,8 @@ export class Game {
 
     this.invuln = 0;
     this.shake = 0;
+    this._milestone = 0;
+    this.powers = { shield: false, magnet: 0, double: 0 };
 
     this._initRenderer();
     this._initScene();
@@ -429,6 +431,8 @@ export class Game {
     this.invuln = 0;
     this.shake = 0;
     this._lookX = 0;
+    this._milestone = 0;
+    this.powers = { shield: false, magnet: 0, double: 0 };
     this.ballMesh.rotation.set(0, 0, 0);
     this.ballMesh.visible = true;
     this.resetTrail();
@@ -583,8 +587,20 @@ export class Game {
       this._die('You fell off the track');
     }
 
+    // power-up timers
+    if (this.powers.magnet > 0) this.powers.magnet -= dt;
+    if (this.powers.double > 0) this.powers.double -= dt;
+
     this._checkLasers(ball);
+    this._checkPowerups(ball);
     this._checkOrbs(ball);
+
+    // distance milestones every 500m → bonus coins + banner
+    const milestone = Math.floor(ball.dist / 500);
+    if (milestone > this._milestone) {
+      this._milestone = milestone;
+      this.cb.onMilestone?.(milestone * 500);
+    }
 
     // rolling animation
     this.ballMesh.rotation.x -= (speed * dt) / BALL_R;
@@ -594,6 +610,15 @@ export class Game {
 
     const speedFrac = (speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED);
     this.cb.onUpdate?.(Math.floor(ball.dist), this.orbCount, speedFrac);
+    this.cb.onPowers?.(this._powerList());
+  }
+
+  _powerList() {
+    const out = [];
+    if (this.powers.shield) out.push({ kind: 'shield' });
+    if (this.powers.magnet > 0) out.push({ kind: 'magnet', t: this.powers.magnet });
+    if (this.powers.double > 0) out.push({ kind: 'double', t: this.powers.double });
+    return out;
   }
 
   _checkLasers(ball) {
@@ -605,23 +630,64 @@ export class Game {
       const xHit = ball.x > l.xMin - BALL_R && ball.x < l.xMax + BALL_R;
       const yHit = ball.y - BALL_R < l.y + 0.12 && ball.y + BALL_R > l.y - 0.12;
       if (xHit && yHit) {
+        // A shield absorbs one laser hit instead of ending the run.
+        if (this.powers.shield) {
+          this.powers.shield = false;
+          this.invuln = 1.4;
+          this.shake = 0.35;
+          this.sfx.land();
+          this.emitBurst(ball.x, ball.y, -ball.dist, 0x49d6ff, 30, 6);
+          return;
+        }
         this._die('You hit a laser');
         return;
       }
     }
   }
 
+  _checkPowerups(ball) {
+    for (const p of this.track.powerups) {
+      if (p.taken) continue;
+      const dz = ball.dist - p.s;
+      if (Math.abs(dz) > 1.6) continue;
+      const dx = ball.x - p.x;
+      const dy = ball.y - p.y;
+      if (dx * dx + dy * dy + dz * dz < 2.2) {
+        p.taken = true;
+        p.mesh.visible = false;
+        this._activatePower(p.kind);
+        this.sfx.orb();
+        this.emitBurst(p.x, p.y, -p.s, this.track.powerMats[p.kind].color.getHex(), 22, 6);
+      }
+    }
+  }
+
+  _activatePower(kind) {
+    if (kind === 'shield') this.powers.shield = true;
+    else if (kind === 'magnet') this.powers.magnet = 8;
+    else if (kind === 'double') this.powers.double = 10;
+  }
+
   _checkOrbs(ball) {
+    const magnet = this.powers.magnet > 0;
     for (const o of this.track.orbs) {
       if (o.taken) continue;
       const dz = ball.dist - o.s;
+      // While the magnet is active, pull nearby orbs toward the ball.
+      if (magnet && dz > -1 && dz < 9) {
+        o.x += (ball.x - o.x) * 0.2;
+        o.y += (ball.y - o.y) * 0.2;
+        o.mesh.position.x = o.x;
+        o.mesh.position.y = o.y;
+      }
       if (Math.abs(dz) > 1.4) continue;
       const dx = ball.x - o.x;
       const dy = ball.y - o.y;
-      if (dx * dx + dy * dy + dz * dz < 1.5) {
+      const reach = magnet ? 2.6 : 1.5;
+      if (dx * dx + dy * dy + dz * dz < reach) {
         o.taken = true;
         o.mesh.visible = false;
-        this.orbCount++;
+        this.orbCount += this.powers.double > 0 ? 2 : 1;
         this.sfx.orb();
         this.emitBurst(o.x, o.y, -o.s, 0x36e0ff, 10, 4);
       }
@@ -671,6 +737,12 @@ export class Game {
   _animateDecor(dt) {
     for (const o of this.track.orbs) {
       if (!o.taken) o.mesh.rotation.y += dt * 2.5;
+    }
+    for (const p of this.track.powerups) {
+      if (!p.taken) {
+        p.mesh.rotation.y += dt * 1.8;
+        p.mesh.rotation.x += dt * 1.1;
+      }
     }
     if (this.stars) this.stars.position.z = -this.ball.dist;
 

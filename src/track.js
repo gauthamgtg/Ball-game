@@ -19,6 +19,14 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const LASER_COLOR = 0xff3b6b;
 const ORB_COLOR = 0x36e0ff;
 
+// Power-up kinds and their signature colours.
+export const POWERUPS = {
+  shield: 0x49d6ff,
+  magnet: 0xff4d6d,
+  double: 0xffd54a,
+};
+const POWERUP_KINDS = Object.keys(POWERUPS);
+
 export class TrackManager {
   constructor(scene, roadTexture) {
     this.scene = scene;
@@ -59,10 +67,24 @@ export class TrackManager {
       roughness: 0.4,
     });
 
+    // Power-up pickups: one shared geometry, one material per kind.
+    this.powerGeo = new THREE.OctahedronGeometry(0.5, 0);
+    this.powerMats = {};
+    for (const [kind, color] of Object.entries(POWERUPS)) {
+      this.powerMats[kind] = new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: 1.3,
+        metalness: 0.4,
+        roughness: 0.2,
+      });
+    }
+
     this.segments = [];
     this.lasers = [];
     this.orbs = [];
     this.ramps = [];
+    this.powerups = [];
     this.reset();
   }
 
@@ -72,6 +94,7 @@ export class TrackManager {
     this.lasers.length = 0;
     this.orbs.length = 0;
     this.ramps.length = 0;
+    this.powerups.length = 0;
 
     this.cursorS = 0;
     this.curX = 0;
@@ -111,6 +134,13 @@ export class TrackManager {
       return true;
     });
     this.ramps = this.ramps.filter((r) => r.s >= cutoff);
+    this.powerups = this.powerups.filter((p) => {
+      if (p.s < cutoff || p.taken) {
+        this.group.remove(p.mesh);
+        return false;
+      }
+      return true;
+    });
   }
 
   // -- sample the road surface at forward distance s ----------------------
@@ -210,6 +240,7 @@ export class TrackManager {
     if (!opts.safe) {
       if (type === 'flat' || type === 'curve' || type === 'hill') {
         this._maybeAddLasers(seg, diff);
+        this._maybeAddPowerup(seg);
       }
       this._maybeAddOrbs(seg);
     }
@@ -373,6 +404,21 @@ export class TrackManager {
     mesh.position.set(x, y, -s);
     this.group.add(mesh);
     this.orbs.push({ s, x, y, mesh, taken: false });
+  }
+
+  // -- power-ups -----------------------------------------------------------
+  _maybeAddPowerup(seg) {
+    if (Math.random() > 0.12) return;
+    const t = rand(0.35, 0.7);
+    const s = lerp(seg.s0, seg.s1, t);
+    if (seg.gap && s > seg.gap.g0 - 2 && s < seg.gap.g1 + 2) return;
+    const cx = lerp(seg.x0, seg.x1, smooth(t));
+    const gy = lerp(seg.y0, seg.y1, smooth(t));
+    const kind = POWERUP_KINDS[Math.floor(Math.random() * POWERUP_KINDS.length)];
+    const mesh = new THREE.Mesh(this.powerGeo, this.powerMats[kind]);
+    mesh.position.set(cx, gy + 1.1, -s);
+    this.group.add(mesh);
+    this.powerups.push({ s, x: cx, y: gy + 1.1, kind, mesh, taken: false });
   }
 
   _disposeSeg(seg) {
