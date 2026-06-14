@@ -51,8 +51,32 @@ export class Game {
     this._contextLost = false;
     window.addEventListener('resize', () => this._onResize());
     this._initContextLossHandling();
+    this._prewarm();
     this._loop = this._loop.bind(this);
     requestAnimationFrame(this._loop);
+  }
+
+  // Compile materials/post-processing up front so the first visible frame
+  // doesn't hitch while shaders compile (especially bloom).
+  _prewarm() {
+    try {
+      this.renderer.compile(this.scene, this.camera);
+      if (this.bloomEnabled && this.composer) this.composer.render();
+      else this.renderer.render(this.scene, this.camera);
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  // App lifecycle: pause audio when backgrounded, resume when foregrounded.
+  suspendAudio() {
+    this.music.stop();
+    if (this.sfx.ctx?.state === 'running') this.sfx.ctx.suspend();
+  }
+
+  resumeAudio() {
+    if (this.sfx.ctx) this.sfx.ctx.resume();
+    this.applyAudioSettings();
   }
 
   // Mobile GPUs reclaim WebGL contexts aggressively; recover gracefully.
