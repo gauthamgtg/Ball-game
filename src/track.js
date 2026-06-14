@@ -40,6 +40,25 @@ export class TrackManager {
       roughness: 0.3,
     });
 
+    // Shared geometry/materials for the many orbs & lasers so spawning one
+    // never allocates or uploads new GPU buffers (laser width is set via
+    // mesh.scale.x on a unit box).
+    this.orbGeo = new THREE.IcosahedronGeometry(0.32, 0);
+    this.orbMat = new THREE.MeshStandardMaterial({
+      color: ORB_COLOR,
+      emissive: ORB_COLOR,
+      emissiveIntensity: 1.1,
+      metalness: 0.5,
+      roughness: 0.2,
+    });
+    this.laserGeo = new THREE.BoxGeometry(1, 0.16, 0.16);
+    this.laserMat = new THREE.MeshStandardMaterial({
+      color: LASER_COLOR,
+      emissive: LASER_COLOR,
+      emissiveIntensity: 1.6,
+      roughness: 0.4,
+    });
+
     this.segments = [];
     this.lasers = [];
     this.orbs = [];
@@ -79,8 +98,7 @@ export class TrackManager {
     }
     this.lasers = this.lasers.filter((l) => {
       if (l.s1 < cutoff) {
-        this.group.remove(l.mesh);
-        l.mesh.geometry.dispose();
+        this.group.remove(l.mesh); // shared geometry: never disposed here
         return false;
       }
       return true;
@@ -327,14 +345,8 @@ export class TrackManager {
   _spawnLaser(s, xMin, xMax, groundY, h) {
     const width = xMax - xMin;
     const cx = (xMin + xMax) / 2;
-    const geo = new THREE.BoxGeometry(width, 0.16, 0.16);
-    const mat = new THREE.MeshStandardMaterial({
-      color: LASER_COLOR,
-      emissive: LASER_COLOR,
-      emissiveIntensity: 1.6,
-      roughness: 0.4,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new THREE.Mesh(this.laserGeo, this.laserMat);
+    mesh.scale.x = width; // unit box scaled to the beam width
     mesh.position.set(cx, groundY + h, -s);
     this.group.add(mesh);
     this.lasers.push({ s, s1: s, xMin, xMax, y: groundY + h, h, groundY, mesh });
@@ -357,15 +369,7 @@ export class TrackManager {
   }
 
   _spawnOrb(s, x, y) {
-    const geo = new THREE.IcosahedronGeometry(0.32, 0);
-    const mat = new THREE.MeshStandardMaterial({
-      color: ORB_COLOR,
-      emissive: ORB_COLOR,
-      emissiveIntensity: 1.1,
-      metalness: 0.5,
-      roughness: 0.2,
-    });
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh = new THREE.Mesh(this.orbGeo, this.orbMat);
     mesh.position.set(x, y, -s);
     this.group.add(mesh);
     this.orbs.push({ s, x, y, mesh, taken: false });

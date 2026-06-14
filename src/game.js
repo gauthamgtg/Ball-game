@@ -46,9 +46,36 @@ export class Game {
     this.sfx.sfxOn = settings.get('sfxOn');
 
     this._clock = new THREE.Clock();
+    this._contextLost = false;
     window.addEventListener('resize', () => this._onResize());
+    this._initContextLossHandling();
     this._loop = this._loop.bind(this);
     requestAnimationFrame(this._loop);
+  }
+
+  // Mobile GPUs reclaim WebGL contexts aggressively; recover gracefully.
+  _initContextLossHandling() {
+    this.canvas.addEventListener(
+      'webglcontextlost',
+      (e) => {
+        e.preventDefault(); // required for the context to be restorable
+        this._contextLost = true;
+      },
+      false
+    );
+    this.canvas.addEventListener(
+      'webglcontextrestored',
+      () => {
+        // Post-processing render targets are lost; rebuild the composer and
+        // re-apply the current quality level, then resume.
+        this._initPost();
+        this.setQuality(this.quality);
+        this._onResize();
+        this._clock.getDelta(); // discard the long stalled frame
+        this._contextLost = false;
+      },
+      false
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -322,16 +349,38 @@ export class Game {
     else this.music.stop();
   }
 
+  // `q` is the user setting: 'auto' | 'low' | 'medium' | 'high'. In auto mode
+  // we pick a starting level from the device and then adapt it to the measured
+  // frame rate.
   setQuality(q) {
     this.quality = q;
+    this.autoQuality = q === 'auto';
+    const level = this.autoQuality ? this._detectTier() : q;
+    this._applyLevel(level);
+    this._perfAccum = 0;
+    this._perfFrames = 0;
+    this._perfCooldown = 2; // seconds before the first auto adjustment
+  }
+
+  // Heuristic device tier from CPU cores / memory / pixel density.
+  _detectTier() {
+    const cores = navigator.hardwareConcurrency || 4;
+    const mem = navigator.deviceMemory || 4;
+    if (cores <= 4 || mem <= 3) return 'medium';
+    if (cores <= 2 || mem <= 2) return 'low';
+    return 'high';
+  }
+
+  _applyLevel(level) {
+    this.activeLevel = level;
     const dpr = window.devicePixelRatio || 1;
-    if (q === 'low') {
+    if (level === 'low') {
       this.renderer.setPixelRatio(1);
       this.renderer.shadowMap.enabled = false;
       this.scene.fog.near = 40;
       this.scene.fog.far = 140;
       if (this.stars) this.stars.visible = false;
-    } else if (q === 'medium') {
+    } else if (level === 'medium') {
       this.renderer.setPixelRatio(Math.min(dpr, 1.5));
       this.renderer.shadowMap.enabled = true;
       this.scene.fog.near = 55;
@@ -347,9 +396,26 @@ export class Game {
     if (this.dirLight) this.dirLight.castShadow = this.renderer.shadowMap.enabled;
 
     // Bloom is the centrepiece of the look; scale it back on low-end.
-    this.bloomEnabled = q !== 'low' && !!this.composer;
-    if (this.bloom) this.bloom.strength = q === 'high' ? 0.85 : 0.6;
-    if (this.particles) this.particles.visible = q !== 'low';
+    this.bloomEnabled = level !== 'low' && !!this.composer;
+    if (this.bloom) this.bloom.strength = level === 'high' ? 0.85 : 0.6;
+    if (this.particles) this.particles.visible = level !== 'low';
+  }
+
+  // Sustained-low-FPS auto downgrade (only in auto mode, only while playing).
+  _perf(dt) {
+    if (!this.autoQuality || this.state !== 'playing') return;
+    this._perfCooldown -= dt;
+    this._perfAccum += dt;
+    this._perfFrames++;
+    if (this._perfAccum < 1) return;
+    const fps = this._perfFrames / this._perfAccum;
+    this._perfAccum = 0;
+    this._perfFrames = 0;
+    if (this._perfCooldown > 0) return;
+    if (fps < 45 && this.activeLevel !== 'low') {
+      this._applyLevel(this.activeLevel === 'high' ? 'medium' : 'low');
+      this._perfCooldown = 3; // settle before considering another change
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -396,8 +462,7 @@ export class Game {
     // Clear lasers in the immediate restart zone so the revive is fair.
     this.track.lasers = this.track.lasers.filter((l) => {
       if (l.s > s - 3 && l.s < s + 40) {
-        this.track.group.remove(l.mesh);
-        l.mesh.geometry.dispose();
+        this.track.group.remove(l.mesh); // shared geometry: don't dispose
         return false;
       }
       return true;
@@ -446,8 +511,10 @@ export class Game {
   // -------------------------------------------------------------------------
   _loop() {
     requestAnimationFrame(this._loop);
+    if (this._contextLost) return; // GPU context gone; skip until restored
     const dt = Math.min(this._clock.getDelta(), 0.05);
     if (this.state === 'playing') this._step(dt);
+    this._perf(dt);
     this._updateParticles(dt);
     this._updateCamera(dt);
     this._animateDecor(dt);
