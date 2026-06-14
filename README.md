@@ -29,6 +29,11 @@ and try to go the distance as the speed keeps climbing.
   run you can **spend coins** to revive. Reviving drops you on safe ground,
   clears nearby lasers, and grants brief invulnerability; your distance carries
   over.
+- **Power-ups** — grab floating pickups: **🛡 Shield** (absorbs one laser hit),
+  **🧲 Magnet** (pulls in nearby orbs), and **×2 Double** (orbs count double).
+  Active power-ups show as timed chips in the HUD.
+- **Milestones & daily reward** — every 500m flashes a banner and pays bonus
+  coins, and a streak-based **daily reward** greets you on the menu once a day.
 - **Coins & shop** — orbs collected during a run are banked into coins; spend
   them in the **shop** to buy and equip **ball skins** (including a hue-cycling
   "Plasma" skin).
@@ -175,6 +180,7 @@ src/
   leaderboard.js        # local + pluggable global leaderboard
   economy.js            # persistent coins (banked from orbs)
   skins.js              # ball skins + ownership / equip persistence
+  daily.js              # streak-based daily reward
   monetization.js       # ads + IAP abstraction (provider hooks)
   styles.css            # UI / HUD / menu styling
 test/

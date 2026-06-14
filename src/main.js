@@ -5,17 +5,22 @@ import { Leaderboard } from './leaderboard.js';
 import { Economy } from './economy.js';
 import { SkinStore, SKINS } from './skins.js';
 import { Ads } from './monetization.js';
+import { DailyReward } from './daily.js';
 
 const $ = (id) => document.getElementById(id);
 const qsa = (sel) => Array.from(document.querySelectorAll(sel));
 const hexCss = (n) => '#' + n.toString(16).padStart(6, '0');
 
 const LIFE_COST = 75;
+const MILESTONE_BONUS = 20;
+
+const POWER_ICONS = { shield: '🛡', magnet: '🧲', double: '×2' };
 
 const settings = new Settings();
 const leaderboard = new Leaderboard();
 const economy = new Economy();
 const skins = new SkinStore();
+const daily = new DailyReward();
 const ads = new Ads();
 ads.setProvider({ showRewarded: playMockAd });
 
@@ -63,6 +68,14 @@ const game = new Game($('game'), settings, {
     $('orbs').textContent = orbs;
     $('speed-bar').style.width = `${Math.round(Math.max(0, Math.min(1, speedFrac)) * 100)}%`;
   },
+  onPowers(list) {
+    renderPowers(list);
+  },
+  onMilestone(meters) {
+    economy.add(MILESTONE_BONUS);
+    refreshCoins();
+    showBanner(`${meters}m · +${MILESTONE_BONUS} ♦`);
+  },
   onGameOver(reason, dist, orbs) {
     // Bank any newly collected orbs into coins (delta, so continues don't
     // double-count).
@@ -109,8 +122,35 @@ window.addEventListener('pointerdown', unlockAudio, { once: true });
 // ---------------------------------------------------------------------------
 function startGame() {
   run = { adUsed: false, payUsed: false, banked: 0 };
+  renderPowers([]);
   showScreen(null);
   game.start();
+}
+
+// HUD chips for active power-ups (rebuilt only when the set/seconds change).
+let lastPowerHtml = '';
+function renderPowers(list) {
+  const html = list
+    .map((p) => {
+      const secs = p.t != null ? ` ${Math.ceil(p.t)}s` : '';
+      return `<span class="power-chip ${p.kind}"><span class="ico">${POWER_ICONS[p.kind]}</span>${secs}</span>`;
+    })
+    .join('');
+  if (html !== lastPowerHtml) {
+    $('power-hud').innerHTML = html;
+    lastPowerHtml = html;
+  }
+}
+
+let bannerTimer = null;
+function showBanner(text) {
+  const el = $('banner');
+  el.textContent = text;
+  el.classList.remove('hidden', 'show');
+  void el.offsetWidth; // restart the CSS animation
+  el.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => el.classList.add('hidden'), 1800);
 }
 
 function toMenu() {
@@ -350,6 +390,27 @@ async function selectTab(tab) {
 qsa('.tab').forEach((t) => t.addEventListener('click', () => selectTab(t.dataset.tab)));
 
 // ---------------------------------------------------------------------------
+// Daily reward (shown over the menu once per day).
+function maybeShowDaily() {
+  if (!daily.available()) return;
+  const { streak, reward } = daily.preview();
+  $('daily-reward').textContent = reward;
+  $('daily-streak').textContent = streak;
+  $('daily-screen').classList.remove('hidden');
+}
+
+$('daily-claim').addEventListener('click', () => {
+  const res = daily.claim();
+  if (res) {
+    economy.add(res.reward);
+    refreshCoins();
+    showBanner(`+${res.reward} ♦ · Day ${res.streak}`);
+  }
+  $('daily-screen').classList.add('hidden');
+});
+
+// ---------------------------------------------------------------------------
 refreshBest();
 refreshCoins();
 showScreen('menu');
+maybeShowDaily();
