@@ -6,6 +6,11 @@ import { Economy } from './economy.js';
 import { SkinStore, SKINS } from './skins.js';
 import { Ads } from './monetization.js';
 import { DailyReward } from './daily.js';
+import { initPersistence } from './persistence.js';
+
+// Mirror saved data to durable native storage (no-op on web). Self-reloads
+// once if it recovers evicted data, so run it before reading any state.
+initPersistence();
 
 const $ = (id) => document.getElementById(id);
 const qsa = (sel) => Array.from(document.querySelectorAll(sel));
@@ -410,7 +415,39 @@ $('daily-claim').addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------------------
+// App lifecycle: pause the game + audio when backgrounded.
+function onBackground() {
+  if (game.state === 'playing') {
+    game.pause();
+    showScreen('pause');
+  }
+  game.suspendAudio();
+}
+function onForeground() {
+  game.resumeAudio();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) onBackground();
+  else onForeground();
+});
+window.Capacitor?.Plugins?.App?.addListener?.('appStateChange', ({ isActive }) => {
+  if (isActive) onForeground();
+  else onBackground();
+});
+
+// Hide the loading screen once the first frame (with compiled shaders) is up.
+function hideLoading() {
+  const el = $('loading');
+  if (el) {
+    el.classList.add('gone');
+    setTimeout(() => el.remove(), 600);
+  }
+  window.Capacitor?.Plugins?.SplashScreen?.hide?.();
+}
+
+// ---------------------------------------------------------------------------
 refreshBest();
 refreshCoins();
 showScreen('menu');
 maybeShowDaily();
+requestAnimationFrame(() => requestAnimationFrame(hideLoading));

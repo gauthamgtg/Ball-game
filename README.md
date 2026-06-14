@@ -100,7 +100,17 @@ npm install
 npm run build            # produce dist/
 npx cap add android      # creates the android/ project
 npx cap add ios          # creates the ios/ project   (macOS only)
+npm run assets:native    # generate app icons + splash into the native projects
 ```
+
+### App icons & splash
+
+Source artwork lives in `assets/` (a glowing neon ball, generated in pure JS by
+`npm run assets:gen` — edit `scripts/gen-assets.mjs` to tweak it, or drop in your
+own PNGs). `npm run assets:native` (which runs `@capacitor/assets`) resizes them
+into every icon/splash density for iOS and Android. The native splash is
+configured in `capacitor.config.json`; a web loading screen covers first-frame
+shader compilation.
 
 ### Build / run on a device
 
@@ -189,6 +199,12 @@ test/
 
 ## Notes
 
+- **Durable saves**: on native, all progress (coins, skins, settings,
+  leaderboard, daily streak) is mirrored into Capacitor Preferences and restored
+  on launch if the WebView evicts localStorage. The web build uses localStorage
+  directly.
+- **App lifecycle**: backgrounding the app pauses the game and audio; returning
+  resumes audio.
 - All art is generated in code (procedural canvas textures, geometry, and
   synthesized audio), so there are no binary asset files to manage.
 - The default app id is `com.bizeract.infiniteballroll`; change `appId` /
