@@ -101,12 +101,7 @@ export class Game {
 
     this._addStars();
 
-    this.camera = new THREE.PerspectiveCamera(
-      62,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      400
-    );
+    this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 400);
     this.camera.position.set(0, CAM_HEIGHT, CAM_BACK);
     this.camera.lookAt(0, 0, -LOOK_AHEAD);
   }
@@ -145,7 +140,10 @@ export class Game {
       emissive: 0xff3b81,
       emissiveIntensity: 0.7,
     });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(BALL_R + 0.005, 0.07, 10, 40), this.ringMat);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(BALL_R + 0.005, 0.07, 10, 40),
+      this.ringMat
+    );
     this.ballMesh.add(ring);
 
     this._special = null;
@@ -285,12 +283,10 @@ export class Game {
       p[i * 3] += v[i * 3] * dt;
       p[i * 3 + 1] += v[i * 3 + 1] * dt;
       p[i * 3 + 2] += v[i * 3 + 2] * dt;
-      const f = Math.max(0, this.pLife[i]);
       c[i * 3] *= 0.96;
       c[i * 3 + 1] *= 0.96;
       c[i * 3 + 2] *= 0.96;
       if (this.pLife[i] <= 0) p[i * 3 + 1] = -9999;
-      void f;
     }
     if (any) {
       this.particles.geometry.attributes.position.needsUpdate = true;
@@ -441,14 +437,7 @@ export class Game {
     this.state = 'dead';
     this.sfx.death();
     this.shake = 0.6;
-    this.emitBurst(
-      this.ball.x,
-      this.ball.y,
-      -this.ball.dist,
-      this._trailColor.getHex(),
-      60,
-      8
-    );
+    this.emitBurst(this.ball.x, this.ball.y, -this.ball.dist, this._trailColor.getHex(), 60, 8);
     this.ballMesh.visible = false;
     const dist = Math.floor(this.ball.dist);
     this.cb.onGameOver?.(reason, dist, this.orbCount);
@@ -527,7 +516,7 @@ export class Game {
       this._die('You fell off the track');
     }
 
-    this._checkLasers(ball, speed);
+    this._checkLasers(ball);
     this._checkOrbs(ball);
 
     // rolling animation
@@ -540,7 +529,7 @@ export class Game {
     this.cb.onUpdate?.(Math.floor(ball.dist), this.orbCount, speedFrac);
   }
 
-  _checkLasers(ball, speed) {
+  _checkLasers(ball) {
     if (this.invuln > 0) return; // brief grace after a continue
     for (const l of this.track.lasers) {
       // Crossed this laser's plane during the frame?
