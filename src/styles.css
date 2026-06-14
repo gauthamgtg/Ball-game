@@ -21,7 +21,12 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font-family: "Trebuchet MS", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family:
+    'Trebuchet MS',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    sans-serif;
   touch-action: none;
   overscroll-behavior: none;
 }
@@ -178,7 +183,9 @@ body {
   border-radius: 50px;
   background: linear-gradient(90deg, var(--accent), #7af9ff);
   box-shadow: 0 10px 30px rgba(54, 224, 255, 0.45);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .btn:active {
@@ -572,14 +579,18 @@ body {
 
 .skin-card.equipped {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent), 0 6px 20px rgba(54, 224, 255, 0.25);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 6px 20px rgba(54, 224, 255, 0.25);
 }
 
 .skin-swatch {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  box-shadow: inset -6px -8px 14px rgba(0, 0, 0, 0.45), 0 0 18px currentColor;
+  box-shadow:
+    inset -6px -8px 14px rgba(0, 0, 0, 0.45),
+    0 0 18px currentColor;
 }
 
 .skin-name {

@@ -55,10 +55,10 @@ physics invariants (no NaN, monotonic distance, ground-tracking) across runs.
 
 ## Controls
 
-| Action | Touch (phone)            | Keyboard (desktop)      |
-| ------ | ------------------------ | ----------------------- |
-| Steer  | Drag left / right        | ← → or A / D            |
-| Jump   | Swipe up, or quick tap   | Space, ↑, or W          |
+| Action | Touch (phone)          | Keyboard (desktop) |
+| ------ | ---------------------- | ------------------ |
+| Steer  | Drag left / right      | ← → or A / D       |
+| Jump   | Swipe up, or quick tap | Space, ↑, or W     |
 
 ## Run it in a browser (fastest way to play / develop)
 
