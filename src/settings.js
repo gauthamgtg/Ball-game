@@ -4,7 +4,7 @@ const KEY = 'ibr_settings';
 const DEFAULTS = {
   sfxOn: true,
   musicOn: true,
-  quality: 'high', // 'low' | 'medium' | 'high'
+  quality: 'auto', // 'auto' | 'low' | 'medium' | 'high'
   name: 'Player',
 };
 

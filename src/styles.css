@@ -357,10 +357,10 @@ body {
   cursor: pointer;
   font-family: inherit;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text);
   background: transparent;
-  padding: 9px 14px;
+  padding: 9px 11px;
 }
 
 .segment button.active {
